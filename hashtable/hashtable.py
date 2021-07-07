@@ -2,6 +2,7 @@ class HashTableEntry:
     """
     Linked List hash table key/value pair
     """
+
     def __init__(self, key, value):
         self.key = key
         self.value = value
@@ -22,7 +23,8 @@ class HashTable:
 
     def __init__(self, capacity):
         # Your code here
-
+        self.capacity = capacity
+        self.storage = [None] * capacity
 
     def get_num_slots(self):
         """
@@ -35,16 +37,27 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        # return len(self.storage)
+        return len(self.capacity)
 
     def get_load_factor(self):
         """
         Return the load factor for this hash table.
-
+        
         Implement this.
         """
         # Your code here
 
+        load = 0
+        for x in self.storage:
+            if x != None:
+                load += 1
+        load_factor = load / self.capacity
+        if load_factor > 0.7:
+            self.resize(int(2 * self.capacity))
+        elif load_factor < 0.2:
+            self.resize(int(self.capacity / 2))
+        return load_factor
 
     def fnv1(self, key):
         """
@@ -54,7 +67,11 @@ class HashTable:
         """
 
         # Your code here
-
+        hash = 14695981039346656037
+        for x in key:
+            hash = hash ^ ord(x)
+            hash = hash * 1099411628211
+        return hash
 
     def djb2(self, key):
         """
@@ -63,15 +80,18 @@ class HashTable:
         Implement this, and/or FNV-1.
         """
         # Your code here
-
+        hash = 5381
+        for c in key:
+            hash = (hash * 33) + ord(c)
+        return hash
 
     def hash_index(self, key):
         """
         Take an arbitrary key and return a valid integer index
         between within the storage capacity of the hash table.
         """
-        #return self.fnv1(key) % self.capacity
-        return self.djb2(key) % self.capacity
+        return self.fnv1(key) % self.capacity
+        # return self.djb2(key) % self.capacity
 
     def put(self, key, value):
         """
@@ -82,7 +102,28 @@ class HashTable:
         Implement this.
         """
         # Your code here
+        # MVP 1 code
+        # self.storage[self.hash_index(key)] = value
 
+        h = self.hash_index(key)
+        current_value = self.storage[h]
+        if current_value == None:
+            self.storage[h] = HashTableEntry(key, value)
+        else:
+            new_entry = HashTableEntry(key, value)
+            new_entry.next = current_value
+            self.storage[h] = new_entry
+        self.get_load_factor()
+
+    def rehash_put(self, key, value):
+        h = self.hash_index(key)
+        current_value = self.storage[h]
+        if current_value == None:
+            self.storage[h] = HashTableEntry(key, value)
+        else:
+            new_entry = HashTableEntry(key, value)
+            new_entry.next = current_value
+            self.storage[h] = new_entry
 
     def delete(self, key):
         """
@@ -93,7 +134,21 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        # MVP Day 1
+        # curr_idx = self.hash_index(key)
+        # self.storage[curr_idx] = None
+        h = self.hash_index(key)
+        current_node = self.storage[h]
+        while current_node.next != None:
+            if current_node.key == key:
+                current_node.value = None
+                return
+            else:
+                current_node = current_node.next
+        if current_node.next == None:
+            if current_node.key == key:
+                current_node.value = None
+        self.get_load_factor()
 
     def get(self, key):
         """
@@ -104,7 +159,17 @@ class HashTable:
         Implement this.
         """
         # Your code here
-
+        # Day 1 MVP
+        # curr_idx = self.hash_index(key)
+        # return self.storage[curr_idx]
+        current_node = None
+        for x in range(len(self.storage)):
+            current_node = self.storage[x]
+            while current_node != None:
+                if current_node.key == key:
+                    return current_node.value
+                else:
+                    current_node = current_node.next
 
     def resize(self, new_capacity):
         """
@@ -114,7 +179,22 @@ class HashTable:
         Implement this.
         """
         # Your code here
+        pairs = {}
+        for x in range(len(self.storage)):
+            current_node = self.storage[x]
+            if current_node == None:
+                pass
+            else:
+                if current_node.next == None:
+                    pairs[current_node.key] = current_node.value
+                while current_node.next != None:
+                    pairs[current_node.key] = current_node.value
+                    current_node = current_node.next
+        self.capacity = new_capacity
+        self.storage = [None] * (self.capacity if self.capacity > 8 else 8)
 
+        for key in pairs:
+            self.rehash_put(key, pairs[key])
 
 
 if __name__ == "__main__":
